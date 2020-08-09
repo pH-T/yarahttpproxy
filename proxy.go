@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"strconv"
 	"time"
 
 	"github.com/hillu/go-yara/v4"
@@ -35,21 +32,19 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error @ ScanMem() the request: %v\n", err)
 	}
 
-	if len(matchesIn) > 0 {
-		for _, m := range matchesIn {
-			var names []string
-			for _, ms := range m.Strings {
-				names = append(names, ms.Name)
-			}
-			// TODO: json export?
-			if shouldBeDropped(m.Metas) {
-				lm := LogMessage{Action: "Dropped", Src: r.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
-				log.Println(lm)
-				return
-			}
-			lm := LogMessage{Action: "Matched", Src: r.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
-			log.Println(lm)
+	for _, m := range matchesIn {
+		var names []string
+		for _, ms := range m.Strings {
+			names = append(names, ms.Name)
 		}
+		// TODO: json export?
+		if shouldBeDropped(m.Metas) {
+			lm := LogMessage{Action: "Dropped", Src: r.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
+			log.Println(lm)
+			return // drop immediately
+		}
+		lm := LogMessage{Action: "Matched", Src: r.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
+		log.Println(lm)
 	}
 
 	p.proxy.ServeHTTP(w, r)
@@ -78,26 +73,20 @@ func (p *proxy) responseMatcher(resp *http.Response) error {
 		return nil
 	}
 
-	if len(matchesOut) > 0 {
-		for _, m := range matchesOut {
-			var names []string
-			for _, ms := range m.Strings {
-				names = append(names, ms.Name)
-			}
-			// TODO: json export?
-			if shouldBeDropped(m.Metas) {
-				lm := LogMessage{Action: "Dropped", Src: resp.Request.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
-				log.Println(lm)
-				return droppedError
-			}
-			lm := LogMessage{Action: "Matched", Src: resp.Request.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
-			log.Println(lm)
+	for _, m := range matchesOut {
+		var names []string
+		for _, ms := range m.Strings {
+			names = append(names, ms.Name)
 		}
+		// TODO: json export?
+		if shouldBeDropped(m.Metas) {
+			lm := LogMessage{Action: "Dropped", Src: resp.Request.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
+			log.Println(lm)
+			return droppedError // drop immediately
+		}
+		lm := LogMessage{Action: "Matched", Src: resp.Request.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
+		log.Println(lm)
 	}
 
-	body := ioutil.NopCloser(bytes.NewReader(resDump))
-	resp.Body = body
-	resp.ContentLength = int64(len(resDump))
-	resp.Header.Set("Content-Length", strconv.Itoa(len(resDump)))
 	return nil
 }
