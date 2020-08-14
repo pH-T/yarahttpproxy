@@ -1,4 +1,4 @@
-# yarahttpproxy
+# Yara HTTP Reverse Proxy
 
 HTTP-Proxy with Yara matching of full request/response.
 
