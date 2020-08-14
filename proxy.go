@@ -67,7 +67,7 @@ func (p *proxy) responseMatcher(resp *http.Response) error {
 	}
 
 	var matchesOut yara.MatchRules
-	err = p.yaraOut.ScanMem(resDump, 0, 5*time.Second, &matchesOut) // TODO: play with ScanFlags
+	err = p.yaraOut.ScanMem(resDump, yara.ScanFlagsFastMode, 5*time.Second, &matchesOut)
 	if err != nil {
 		log.Printf("Error @ ScanMem() the response: %v\n", err)
 		return nil
@@ -89,4 +89,5 @@ func (p *proxy) responseMatcher(resp *http.Response) error {
 	}
 
 	return nil
+
 }

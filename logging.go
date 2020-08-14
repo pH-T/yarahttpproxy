@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var debug bool
+
 type LogMessage struct {
 	Action    string   `json:"Action"`
 	Src       string   `json:"Src"`

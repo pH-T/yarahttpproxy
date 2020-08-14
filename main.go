@@ -16,7 +16,6 @@ var (
 	hostRemote string
 	hostLokal  string
 	ruleFolder string
-	debug      bool
 )
 
 func init() {
