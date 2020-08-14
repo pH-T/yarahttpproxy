@@ -7,6 +7,7 @@ import (
 	"github.com/hillu/go-yara/v4"
 )
 
+// shouldBeDropped checks if the meta field 'drop' exists and if so, if its 'true'
 func shouldBeDropped(ms []yara.Meta) bool {
 	for _, m := range ms {
 		if m.Identifier == "drop" {
@@ -20,13 +21,14 @@ func shouldBeDropped(ms []yara.Meta) bool {
 	return true // TODO: make this a setting
 }
 
-func initYara(rules []string) *yara.Rules {
+// initYara loads the rules from the given files
+func initYara(ruleFiles []string) *yara.Rules {
 	c, err := yara.NewCompiler()
 	if err != nil {
 		log.Fatalf("Failed to initialize YARA compiler: %s", err)
 	}
 
-	for _, rule := range rules {
+	for _, rule := range ruleFiles {
 		f, err := os.Open(rule)
 		if err != nil {
 			log.Fatalf("Could not open rule file %s: %v", rule, err)

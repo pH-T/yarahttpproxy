@@ -12,12 +12,14 @@ import (
 
 var errDropped error = fmt.Errorf("%s", "Dropped")
 
+// proxy represents a the internal httpreverseproxy with its rules
 type proxy struct {
 	proxy   *httputil.ReverseProxy
 	yaraIn  *yara.Rules
 	yaraOut *yara.Rules
 }
 
+// ServeHTTP matches requests to the target server, using the "incoming" rules
 func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	debugf("%s", r.URL.String())
 
@@ -51,7 +53,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// errorHandler is called on errors and when a request is dropped, hence the droppedError check
+// errorHandler is called on errors and when a request is dropped, hence the errDropped check
 func (p *proxy) errorHandler(rw http.ResponseWriter, req *http.Request, err error) {
 	if err != errDropped {
 		log.Printf("Error (errorHandler()): %v", err)
@@ -59,6 +61,7 @@ func (p *proxy) errorHandler(rw http.ResponseWriter, req *http.Request, err erro
 	rw.WriteHeader(http.StatusBadRequest)
 }
 
+// responseMatcher matches responses from the target server, using the "outgoing" rules
 func (p *proxy) responseMatcher(resp *http.Response) error {
 	resDump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
