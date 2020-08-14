@@ -10,7 +10,7 @@ import (
 	"github.com/hillu/go-yara/v4"
 )
 
-var droppedError error = fmt.Errorf("%s", "Dropped")
+var errDropped error = fmt.Errorf("%s", "Dropped")
 
 type proxy struct {
 	proxy   *httputil.ReverseProxy
@@ -53,7 +53,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // errorHandler is called on errors and when a request is dropped, hence the droppedError check
 func (p *proxy) errorHandler(rw http.ResponseWriter, req *http.Request, err error) {
-	if err != droppedError {
+	if err != errDropped {
 		log.Printf("Error (errorHandler()): %v", err)
 	}
 	rw.WriteHeader(http.StatusBadRequest)
@@ -82,7 +82,7 @@ func (p *proxy) responseMatcher(resp *http.Response) error {
 		if shouldBeDropped(m.Metas) {
 			lm := LogMessage{Action: "Dropped", Src: resp.Request.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
 			log.Println(lm)
-			return droppedError // drop immediately
+			return errDropped // drop immediately
 		}
 		lm := LogMessage{Action: "Matched", Src: resp.Request.RemoteAddr, Rule: m.Rule, Namespace: m.Namespace, Strings: names}
 		log.Println(lm)
