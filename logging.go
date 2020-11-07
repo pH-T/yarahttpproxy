@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-var debug bool
-
 // LogMessage represents a log entry
 type LogMessage struct {
 	Action    string   `json:"Action"`

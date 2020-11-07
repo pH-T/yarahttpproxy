@@ -1,8 +1,6 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,40 +8,23 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/caddyserver/certmagic"
 )
 
-var (
-	hostRemote string
-	hostLokal  string
-	ruleFolder string
-)
-
-func init() {
-	flag.StringVar(&hostRemote, "hr", "", "host to forward requests to (e.g. http://localhost:8090)")
-	flag.StringVar(&hostLokal, "hl", "127.0.0.1:8080", "host to listen on (e.g. 127.0.0.1:8080)")
-	flag.StringVar(&ruleFolder, "rules", "rules/", "folder with all the rules to use")
-	flag.BoolVar(&debug, "d", false, "debug flag for logging request/response duration")
-	flag.Parse()
-}
+var debug bool
 
 func main() {
-	// input reading & validation
-	if hostRemote == "" {
-		fmt.Println("-hr is missing!")
-		flag.Usage()
-		return
-	}
 
-	if !strings.HasSuffix(ruleFolder, "/") {
-		ruleFolder = ruleFolder + "/"
-	}
+	c := GetConfig("config.json")
+	debug = c.Debug
 
-	remote, err := url.Parse(hostRemote)
+	remote, err := url.Parse(c.RemoteHost)
 	if err != nil {
 		log.Fatalf("Error parsing given host: %v", err)
 	}
 
-	files, err := ioutil.ReadDir(ruleFolder)
+	files, err := ioutil.ReadDir(c.RuleFolder)
 	if err != nil {
 		log.Fatalf("Error opening rule folder: %v", err)
 	}
@@ -53,9 +34,9 @@ func main() {
 	for _, f := range files {
 		if !f.IsDir() && strings.HasSuffix(f.Name(), ".yar") {
 			if strings.HasPrefix(f.Name(), "in.") {
-				rulesIn = append(rulesIn, ruleFolder+f.Name())
+				rulesIn = append(rulesIn, c.RuleFolder+f.Name())
 			} else if strings.HasPrefix(f.Name(), "out.") {
-				rulesOut = append(rulesOut, ruleFolder+f.Name())
+				rulesOut = append(rulesOut, c.RuleFolder+f.Name())
 			}
 		}
 	}
@@ -64,14 +45,23 @@ func main() {
 	proxy.proxy.ModifyResponse = proxy.responseMatcher
 	proxy.proxy.ErrorHandler = proxy.errorHandler
 
-	// server setup
-	srv := &http.Server{
-		Addr:         hostLokal,
-		Handler:      proxy,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+	if !c.UseHTTPS {
+		// server setup
+		srv := &http.Server{
+			Addr:         c.LocalAddr,
+			Handler:      proxy,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+		}
+
+		log.Println("Listening on: " + c.LocalAddr)
+		log.Println(srv.ListenAndServe())
+	} else {
+		log.Println("HTTPS on: " + strings.Join(c.Domains, ", "))
+		err := certmagic.HTTPS(c.Domains, proxy)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	log.Println("Listening on: " + hostLokal)
-	log.Println(srv.ListenAndServe())
 }

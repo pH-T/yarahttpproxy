@@ -1,0 +1,8 @@
+{
+    "remoteHost": "http://localhost:8080",
+    "localAddr": "127.0.0.1:8090",
+    "ruleFolder": "./rules/",
+    "useHTTPS": false,
+    "domains": [],
+    "debug": true
+}
